@@ -1,10 +1,84 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
-import { Button } from "../components/ui/button"
+"use client"
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { BookOpen, Brain, TrendingUp, Plus } from "lucide-react"
+import { useState, useEffect } from "react"
+
+// Configuration for your Laravel backend
+const API_BASE_URL = '/api'
+
+interface FlashcardData {
+  total_cards: number
+  total_sessions: number
+  average_accuracy: number
+  cards_mastered: number
+  study_streak: number
+  subject_breakdown: Array<{
+    subject: string
+    card_count: number
+    accuracy: number
+  }>
+}
 
 export default function Dashboard() {
+  const [data, setData] = useState<FlashcardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [])
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/analytics`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const result = await response.json()
+      if (result.success) {
+        setData(result.data)
+      } else {
+        throw new Error('Failed to fetch analytics data')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch data')
+      console.error('Error fetching analytics:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleNavigation = (path: string) => {
     window.location.href = path
+  }
+
+  const handleFlashcardsNavigation = () => {
+    handleNavigation('/flashcards')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <Button onClick={fetchAnalytics}>Retry</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -25,11 +99,15 @@ export default function Dashboard() {
               <CardDescription>Manage your study materials</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600 mb-2">24</div>
-              <p className="text-sm text-gray-600 mb-4">Total flashcards across 3 subjects</p>
+              <div className="text-2xl font-bold text-blue-600 mb-2">
+                {data?.total_cards || 0}
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Total flashcards across {data?.subject_breakdown?.length || 0} subjects
+              </p>
               <Button 
                 className="w-full" 
-                onClick={() => handleNavigation('/flashcards')}
+                onClick={handleFlashcardsNavigation}
               >
                 View All Cards
               </Button>
@@ -45,7 +123,9 @@ export default function Dashboard() {
               <CardDescription>Adaptive learning with AI</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600 mb-2">85%</div>
+              <div className="text-2xl font-bold text-purple-600 mb-2">
+                {data?.average_accuracy || 0}%
+              </div>
               <p className="text-sm text-gray-600 mb-4">Average accuracy this week</p>
               <Button 
                 className="w-full" 
@@ -66,7 +146,9 @@ export default function Dashboard() {
               <CardDescription>Your learning analytics</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600 mb-2">12</div>
+              <div className="text-2xl font-bold text-green-600 mb-2">
+                {data?.cards_mastered || 0}
+              </div>
               <p className="text-sm text-gray-600 mb-4">Cards mastered this week</p>
               <Button 
                 className="w-full" 
@@ -82,31 +164,27 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>Subject Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Mathematics - Calculus</p>
-                    <p className="text-sm text-gray-600">Studied 15 minutes ago</p>
+                {data?.subject_breakdown?.map((subject, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">{subject.subject}</p>
+                      <p className="text-sm text-gray-600">{subject.card_count} cards</p>
+                    </div>
+                    <div className={`font-medium ${
+                      subject.accuracy >= 85 ? 'text-green-600' : 
+                      subject.accuracy >= 70 ? 'text-yellow-600' : 
+                      'text-red-600'
+                    }`}>
+                      {subject.accuracy}%
+                    </div>
                   </div>
-                  <div className="text-green-600 font-medium">92%</div>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Physics - Mechanics</p>
-                    <p className="text-sm text-gray-600">Studied 1 hour ago</p>
-                  </div>
-                  <div className="text-yellow-600 font-medium">78%</div>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Chemistry - Organic</p>
-                    <p className="text-sm text-gray-600">Studied 2 hours ago</p>
-                  </div>
-                  <div className="text-red-600 font-medium">65%</div>
-                </div>
+                )) || (
+                  <p className="text-gray-500">No subjects available</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -136,7 +214,7 @@ export default function Dashboard() {
                 <Button 
                   className="w-full justify-start" 
                   variant="outline"
-                  onClick={() => handleNavigation('/flashcards')}
+                  onClick={handleFlashcardsNavigation}
                 >
                   <BookOpen className="h-4 w-4 mr-2" />
                   Browse All Flashcards

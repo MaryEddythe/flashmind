@@ -1,4 +1,7 @@
 {
+  "/api/flashcards/route": "app/api/flashcards/route.js",
   "/_not-found/page": "app/_not-found/page.js",
-  "/study/page": "app/study/page.js"
+  "/study/page": "app/study/page.js",
+  "/flashcards/page": "app/flashcards/page.js",
+  "/page": "app/page.js"
 }
